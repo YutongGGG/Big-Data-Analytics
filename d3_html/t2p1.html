@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Auto MPG Dataset Visualization</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <h1>Auto MPG Dataset Visualization</h1>
+
+  <h2>Top 5 Rows of the Dataset</h2>
+  <table id="topRows" border="1">
+    <thead>
+      <tr>
+        <th>mpg</th>
+        <th>cylinders</th>
+        <th>displacement</th>
+        <th>horsepower</th>
+        <th>weight</th>
+        <th>acceleration</th>
+        <th>model-year</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Count of Cars by Model Year</h2>
+  <table id="countByYear" border="1">
+    <thead>
+      <tr>
+        <th>Model Year</th>
+        <th>Count</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Total Cylinders by Model Year</h2>
+  <table id="totalCylindersByYear" border="1">
+    <thead>
+      <tr>
+        <th>Model Year</th>
+        <th>Total Cylinders</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Count of Cars by Acceleration</h2>
+  <table id="countByAcceleration" border="1">
+    <thead>
+      <tr>
+        <th>Acceleration</th>
+        <th>Count</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    // Load the CSV file and preprocess the data
+    d3.csv("https://raw.githubusercontent.com/plotly/datasets/master/auto-mpg.csv").then(function(data) {
+      // Display the top 5 rows in the table
+      var topRowsTable = d3.select("#topRows");
+      topRowsTable.select("tbody").selectAll("tr")
+        .data(data.slice(0, 5))
+        .enter().append("tr")
+        .html(function(d) {
+          return `<td>${d.mpg}</td><td>${d.cylinders}</td><td>${d.displacement}</td><td>${d.horsepower}</td><td>${d.weight}</td><td>${d.acceleration}</td><td>${d["model-year"]}</td>`;
+        });
+
+      // Create an array to count cars by model year
+      var countByYear = d3.rollup(data, v => v.length, d => d["model-year"]);
+      var countByYearTable = d3.select("#countByYear");
+      countByYearTable.select("tbody").selectAll("tr")
+        .data(Array.from(countByYear))
+        .enter().append("tr")
+        .html(function(d) {
+          return `<td>${d[0]}</td><td>${d[1]}</td>`;
+        });
+
+      // Create an array to get the total number of cylinders by model year
+      var totalCylindersByYear = d3.rollup(data, v => d3.sum(v, d => d.cylinders), d => d["model-year"]);
+      var totalCylindersByYearTable = d3.select("#totalCylindersByYear");
+      totalCylindersByYearTable.select("tbody").selectAll("tr")
+        .data(Array.from(totalCylindersByYear))
+        .enter().append("tr")
+        .html(function(d) {
+          return `<td>${d[0]}</td><td>${d[1]}</td>`;
+        });
+
+      // Create an array to count cars by acceleration
+      var countByAcceleration = d3.rollup(data, v => v.length, d => d.acceleration);
+      var countByAccelerationTable = d3.select("#countByAcceleration");
+      countByAccelerationTable.select("tbody").selectAll("tr")
+        .data(Array.from(countByAcceleration))
+        .enter().append("tr")
+        .html(function(d) {
+          return `<td>${d[0]}</td><td>${d[1]}</td>`;
+        });
+    });
+  </script>
+</body>
+</html>

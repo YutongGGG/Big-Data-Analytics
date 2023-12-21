@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seattle Weather Data - Pie Chart</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <h1>Seattle Weather Data - Pie Chart</h1>
+  <div id="chart"></div>
+
+  <script>
+    d3.csv("https://raw.githubusercontent.com/vega/vega/main/docs/data/seattle-weather.csv")
+      .then(function(data) {
+        var weatherData = d3.rollup(data, v => v.length, d => d.weather);
+
+        var margin = { top: 50, right: 50, bottom: 50, left: 50 };
+        var width = 400;
+        var height = 400;
+        var radius = Math.min(width, height) / 2;
+        var color = d3.scaleOrdinal()
+          .domain(weatherData.keys())
+          .range(d3.schemeSet3);
+
+        var svg = d3.select("#chart")
+          .append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr("transform", "translate(" + (width / 2 + margin.left) + "," + (height / 2 + margin.top) + ")");
+
+        var pie = d3.pie()
+          .value(function(d) { return d[1]; });
+
+        var data_ready = pie(Array.from(weatherData)); // Convert the map to an array
+
+        var arcGenerator = d3.arc()
+          .innerRadius(0)
+          .outerRadius(radius);
+
+        var arcs = svg.selectAll('arc')
+          .data(data_ready)
+          .enter()
+          .append('g')
+          .attr('class', 'arc');
+
+        arcs.append('path')
+          .attr('d', arcGenerator)
+          .attr('fill', function(d) { return color(d.data[0]); });
+
+        arcs.append('text')
+          .attr('transform', function(d) {
+            var pos = arcGenerator.centroid(d);
+            pos[0] = pos[0] * 2;
+            pos[1] = pos[1] * 2;
+            return 'translate(' + pos + ')';
+          })
+          .attr('text-anchor', 'middle')
+          .text(function(d) {
+            return d.data[0] + ' (' + ((d.data[1] / data.length) * 100).toFixed(2) + '%)';
+          });
+
+
+      });
+  </script>
+</body>
+</html>

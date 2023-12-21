@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Auto MPG Dataset Visualization</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <h1>Auto MPG Dataset Visualization</h1>
+
+  <h2>Top 5 Rows of the Dataset</h2>
+  <table id="topRows" border="1">
+    <thead>
+      <tr>
+        <th>mpg</th>
+        <th>cylinders</th>
+        <th>displacement</th>
+        <th>horsepower</th>
+        <th>weight</th>
+        <th>acceleration</th>
+        <th>model-year</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Count of Cars by Model Year</h2>
+  <table id="countByYear" border="1">
+    <thead>
+      <tr>
+        <th>Model Year</th>
+        <th>Count</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Model Year Distribution (Pie Chart)</h2>
+  <div id="pieChart"></div>
+
+  <h2>Total Cylinders by Model Year</h2>
+  <table id="totalCylindersByYear" border="1">
+    <thead>
+      <tr>
+        <th>Model Year</th>
+        <th>Total Cylinders</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Total Cylinders by Model Year (Line Graph)</h2>
+  <div id="lineGraph"></div>
+
+  <h2>Count of Cars by Acceleration</h2>
+  <table id="countByAcceleration" border="1">
+    <thead>
+      <tr>
+        <th>Acceleration</th>
+        <th>Count</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Acceleration Histogram</h2>
+  <div id="histogram"></div>
+
+  <script>
+    // Load the CSV file and preprocess the data
+    d3.csv("https://raw.githubusercontent.com/plotly/datasets/master/auto-mpg.csv").then(function(data) {
+      // Display the top 5 rows in the table
+      var topRowsTable = d3.select("#topRows");
+      topRowsTable.select("tbody").selectAll("tr")
+        .data(data.slice(0, 5))
+        .enter().append("tr")
+        .html(function(d) {
+          return `<td>${d.mpg}</td><td>${d.cylinders}</td><td>${d.displacement}</td><td>${d.horsepower}</td><td>${d.weight}</td><td>${d.acceleration}</td><td>${d["model-year"]}</td>`;
+        });
+
+      // Create an array to count cars by model year
+      var countByYear = d3.rollup(data, v => v.length, d => d["model-year"]);
+      var countByYearTable = d3.select("#countByYear");
+      countByYearTable.select("tbody").selectAll("tr")
+        .data(Array.from(countByYear))
+        .enter().append("tr")
+        .html(function(d) {
+          return `<td>${d[0]}</td><td>${d[1]}</td>`;
+        });
+
+      var countByYearData = Array.from(countByYear);
+
+      var width = 400;
+      var height = 400;
+      var radius = Math.min(width, height) / 2;
+
+      var color = d3.scaleOrdinal()
+        .domain(countByYearData.map(d => d[0]))
+        .range(d3.schemeSet3);
+
+      var svg = d3.select("#pieChart")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g")
+        .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+      var pie = d3.pie()
+        .value(d => d[1]);
+
+      var data_ready = pie(countByYearData);
+
+      var arcGenerator = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius);
+
+      var arcs = svg.selectAll('arc')
+        .data(data_ready)
+        .enter()
+        .append('g')
+        .attr('class', 'arc');
+
+      arcs.append('path')
+        .attr('d', arcGenerator)
+        .attr('fill', d => color(d.data[0]));
+
+      arcs.append('text')
+        .attr('transform', d => 'translate(' + arcGenerator.centroid(d) + ')')
+        .attr('text-anchor', 'middle')
+        .text(d => d.data[0] + ' (' + ((d.data[1] / data.length) * 100).toFixed(2) + '%)');
+
+      // Create an array to get the total number of cylinders by model year
+      var totalCylindersByYear = d3.rollup(data, v => d3.sum(v, d => d.cylinders), d => d["model-year"]);
+      var totalCylindersByYearTable = d3.select("#totalCylindersByYear");
+      totalCylindersByYearTable.select("tbody").selectAll("tr")
+        .data(Array.from(totalCylindersByYear))
+        .enter().append("tr")
+        .html(function(d) {
+          return `<td>${d[0]}</td><td>${d[1]}</td>`;
+        });
+
+      var totalCylindersByYearData = Array.from(totalCylindersByYear);
+
+      var margin = {top: 20, right: 50, bottom: 50, left: 80};
+      var width = 600 - margin.left - margin.right;
+      var height = 400 - margin.top - margin.bottom;
+
+      var svg = d3.select("#lineGraph")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      // var x = d3.scaleLinear()
+      //   .domain(totalCylindersByYearData.map(d => d[0]))
+      //   .range([0, width]);
+      var x = d3.scaleLinear()
+        .domain([70, 82]) // Set the domain explicitly to cover the entire range
+        .range([0, width]);
+
+      var y = d3.scaleLinear()
+        .domain([0, d3.max(totalCylindersByYearData, d => d[1])])
+        .nice()
+        .range([height, 0]);
+
+      var line = d3.line()
+        .x(d => x(d[0]))
+        .y(d => y(d[1]));
+
+      svg.append("path")
+        .datum(totalCylindersByYearData)
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-width", 2)
+        .attr("d", line);
+
+      svg.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x))
+        .selectAll("text")
+        .attr("transform", "rotate(-45)")
+        .style("text-anchor", "end");
+
+      svg.append("g")
+        .call(d3.axisLeft(y));
+
+      svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", height + margin.top + 20)
+        .attr("text-anchor", "middle")
+        .text("Model Year");
+
+      svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -height / 2)
+        .attr("y", -margin.left + 40)
+        .attr("text-anchor", "middle")
+        .text("Total Cylinders");
+
+      // Create an array to count cars by acceleration
+      var countByAcceleration = d3.rollup(data, v => v.length, d => d.acceleration);
+      var countByAccelerationTable = d3.select("#countByAcceleration");
+      countByAccelerationTable.select("tbody").selectAll("tr")
+        .data(Array.from(countByAcceleration))
+        .enter().append("tr")
+        .html(function(d) {
+          return `<td>${d[0]}</td><td>${d[1]}</td>`;
+        });
+
+      var countByAccelerationData = Array.from(countByAcceleration);
+
+      var margin = {top: 20, right: 30, bottom: 50, left: 80};
+      var width = 600 - margin.left - margin.right;
+      var height = 400 - margin.top - margin.bottom;
+
+      var svg = d3.select("#histogram")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      var x = d3.scaleLinear()
+        .domain([0, d3.max(countByAccelerationData, d => d[0])])
+        .nice()
+        .range([0, width]);
+
+      var bins = d3.histogram()
+        .value(d => d[0])
+        .domain(x.domain())
+        .thresholds(x.ticks(10))(countByAccelerationData);
+
+      var y = d3.scaleLinear()
+        .domain([0, d3.max(bins, d => d.length)])
+        .nice()
+        .range([height, 0]);
+
+      svg.selectAll("rect")
+        .data(bins)
+        .enter()
+        .append("rect")
+        .attr("x", 1)
+        .attr("transform", d => "translate(" + x(d.x0) + "," + y(d.length) + ")")
+        .attr("width", d => x(d.x1) - x(d.x0) - 1)
+        .attr("height", d => height - y(d.length));
+        // .attr("fill", "steelblue");
+
+      svg.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x));
+
+      svg.append("g")
+        .call(d3.axisLeft(y));
+
+      svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", height + margin.top + 20)
+        .attr("text-anchor", "middle")
+        .text("Acceleration");
+
+      svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -height / 2)
+        .attr("y", -margin.left + 40)
+        .attr("text-anchor", "middle")
+        .text("Frequency");
+
+    });
+  </script>
+</body>
+</html>

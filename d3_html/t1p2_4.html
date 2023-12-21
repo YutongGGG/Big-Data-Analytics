@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seattle Weather Data - Precipitation Line Graph</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <h1>Seattle Weather Data - Precipitation Line Graph</h1>
+  <div id="lineGraph"></div>
+
+  <script>
+    d3.csv("https://raw.githubusercontent.com/vega/vega/main/docs/data/seattle-weather.csv")
+      .then(function(data) {
+        data.forEach(function(d) {
+          d.date = new Date(d.date);
+          d.precipitation = +d.precipitation;
+        });
+
+        var margin = {top: 20, right: 30, bottom: 40, left: 80};
+        var width = 600 - margin.left - margin.right;
+        var height = 400 - margin.top - margin.bottom;
+
+        var x = d3.scaleTime()
+          .domain(d3.extent(data, function(d) { return d.date; }))
+          .range([0, width]);
+
+        var y = d3.scaleLinear()
+          .domain([0, d3.max(data, function(d) { return d.precipitation; })])
+          .nice()
+          .range([height, 0]);
+
+        var line = d3.line()
+          .x(function(d) { return x(d.date); })
+          .y(function(d) { return y(d.precipitation); });
+
+        var svg = d3.select("#lineGraph")
+          .append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        svg.append("path")
+          .datum(data)
+          .attr("class", "line")
+          .attr("d", line)
+          .attr("fill", "none")
+          .attr("stroke", "blue");
+
+        svg.append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x));
+
+        svg.append("g")
+          .call(d3.axisLeft(y));
+
+        svg.append("text")
+          .attr("x", width / 2)
+          .attr("y", height + margin.top + 20)
+          .attr("text-anchor", "middle")
+          .text("Date");
+
+        svg.append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left + 40)
+          .attr("text-anchor", "middle")
+          .text("Precipitation");
+      })
+  </script>
+</body>
+</html>

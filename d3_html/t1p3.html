@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seattle Weather Data - Interactive Histogram</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <h1>Seattle Weather Data - Interactive Histogram</h1>
+  <div>
+    <label for="binSize">Select Bin Size:</label>
+    <select id="binSize" onchange="updateHistogram(this.value)">
+      <option value="5">5</option>
+      <option value="10" selected>10</option>
+      <option value="15">15</option>
+      <option value="20">20</option>
+      <option value="25">25</option>
+    </select>
+  </div>
+  <div>
+    <label for="variable">Select Variable:</label>
+    <select id="variable" onchange="updateHistogram(binSize.value, this.value)">
+      <option value="wind">Wind</option>
+      <option value="precipitation">Precipitation</option>
+      <option value="temp_max">Max Temperature</option>
+      <option value="temp_min">Min Temperature</option>
+    </select>
+  </div>
+  <div id="chart"></div>
+
+  <script>
+    var selectedVariable = "wind"; // Default variable
+
+    function updateHistogram(binSize, variable) {
+      d3.csv("https://raw.githubusercontent.com/vega/vega/main/docs/data/seattle-weather.csv")
+        .then(function(data) {
+          selectedVariable = variable || selectedVariable;
+
+          var margin = {top: 20, right: 100, bottom: 50, left: 80},
+              width = 600 - margin.left - margin.right,
+              height = 400 - margin.top - margin.bottom;
+
+          var svg = d3.select("#chart").html("").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          var x = d3.scaleLinear()
+            .domain([0, d3.max(data, function(d) { return +d[selectedVariable]; })])
+            .range([0, width]);
+
+          var bins = d3.histogram()
+            .value(function(d) { return +d[selectedVariable]; })
+            .domain(x.domain())
+            .thresholds(x.ticks(binSize))(data);
+
+          var y = d3.scaleLinear()
+            .domain([0, d3.max(bins, function(d) { return d.length; })])
+            .nice()
+            .range([height, 0]);
+
+          svg.selectAll("rect")
+            .data(bins)
+            .enter()
+            .append("rect")
+            .attr("x", 1)
+            .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; })
+            .attr("width", function(d) { return x(d.x1) - x(d.x0) - 1; })
+            .attr("height", function(d) { return height - y(d.length); });
+
+          svg.append("g")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          svg.append("g")
+            .call(d3.axisLeft(y));
+
+          svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.top + 20)
+            .attr("text-anchor", "middle")
+            .text(selectedVariable.charAt(0).toUpperCase() + selectedVariable.slice(1)); // Capitalize the variable name
+
+          svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", -margin.left + 40)
+            .attr("text-anchor", "middle")
+            .text("Frequency");
+        });
+    }
+
+    updateHistogram(10); // Initial histogram
+  </script>
+</body>
+</html>
